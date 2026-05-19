@@ -1,0 +1,123 @@
+# MigRAgent 示例 Schema 配置
+# 用于演示数据库迁移分析流水线
+
+source_schema:
+  database: ecommerce_legacy
+  engine: MySQL 5.7
+  charset: utf8mb4
+  tables:
+    users:
+      columns:
+        id: { type: INT, primary_key: true, auto_increment: true }
+        username: { type: VARCHAR(50), not_null: true, unique: true }
+        email: { type: VARCHAR(100), not_null: true }
+        password_hash: { type: VARCHAR(255), not_null: true }
+        phone: { type: VARCHAR(20), nullable: true }
+        status: { type: TINYINT, default: 1, comment: "0=禁用 1=启用" }
+        created_at: { type: DATETIME, default: "CURRENT_TIMESTAMP" }
+        updated_at: { type: DATETIME, default: "CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP" }
+      indexes:
+        - { name: idx_username, columns: [username], unique: true }
+        - { name: idx_email, columns: [email], unique: true }
+        - { name: idx_status, columns: [status] }
+
+    orders:
+      columns:
+        id: { type: INT, primary_key: true, auto_increment: true }
+        user_id: { type: INT, not_null: true }
+        order_no: { type: VARCHAR(32), not_null: true, unique: true }
+        total_amount: { type: DECIMAL(10, 2), not_null: true }
+        status: { type: TINYINT, default: 0, comment: "0=待支付 1=已支付 2=已发货 3=已完成 4=已取消" }
+        payment_method: { type: VARCHAR(20), nullable: true }
+        shipping_address: { type: TEXT, nullable: true }
+        created_at: { type: DATETIME, default: "CURRENT_TIMESTAMP" }
+        updated_at: { type: DATETIME, default: "CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP" }
+      indexes:
+        - { name: idx_user_id, columns: [user_id] }
+        - { name: idx_order_no, columns: [order_no], unique: true }
+        - { name: idx_status, columns: [status] }
+        - { name: idx_created_at, columns: [created_at] }
+
+    products:
+      columns:
+        id: { type: INT, primary_key: true, auto_increment: true }
+        name: { type: VARCHAR(200), not_null: true }
+        description: { type: TEXT, nullable: true }
+        price: { type: DECIMAL(10, 2), not_null: true }
+        stock: { type: INT, not_null: true, default: 0 }
+        category_id: { type: INT, nullable: true }
+        is_active: { type: TINYINT, default: 1 }
+        created_at: { type: DATETIME, default: "CURRENT_TIMESTAMP" }
+      indexes:
+        - { name: idx_category, columns: [category_id] }
+        - { name: idx_price, columns: [price] }
+
+target_schema:
+  database: ecommerce_new
+  engine: MySQL 8.0
+  charset: utf8mb4
+  tables:
+    users:
+      columns:
+        id: { type: BIGINT, primary_key: true, auto_increment: true }
+        username: { type: VARCHAR(100), not_null: true, unique: true }
+        email: { type: VARCHAR(255), not_null: true }
+        password_hash: { type: VARCHAR(255), not_null: true }
+        phone: { type: VARCHAR(30), nullable: true }
+        avatar_url: { type: VARCHAR(500), nullable: true }
+        status: { type: ENUM, values: ["active", "inactive", "banned"], default: "active" }
+        created_at: { type: TIMESTAMP, default: "CURRENT_TIMESTAMP" }
+        updated_at: { type: TIMESTAMP, default: "CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP" }
+      indexes:
+        - { name: idx_username, columns: [username], unique: true }
+        - { name: idx_email, columns: [email], unique: true }
+        - { name: idx_phone, columns: [phone], unique: true }
+        - { name: idx_status, columns: [status] }
+
+    orders:
+      columns:
+        id: { type: BIGINT, primary_key: true, auto_increment: true }
+        user_id: { type: BIGINT, not_null: true }
+        order_no: { type: VARCHAR(64), not_null: true, unique: true }
+        total_amount: { type: DECIMAL(12, 2), not_null: true }
+        status: { type: ENUM, values: ["pending", "paid", "shipped", "completed", "cancelled"], default: "pending" }
+        payment_method: { type: VARCHAR(50), nullable: true }
+        shipping_address: { type: JSON, nullable: true }
+        notes: { type: TEXT, nullable: true }
+        created_at: { type: TIMESTAMP, default: "CURRENT_TIMESTAMP" }
+        updated_at: { type: TIMESTAMP, default: "CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP" }
+      indexes:
+        - { name: idx_user_id, columns: [user_id] }
+        - { name: idx_order_no, columns: [order_no], unique: true }
+        - { name: idx_status, columns: [status] }
+        - { name: idx_created_at, columns: [created_at] }
+
+    products:
+      columns:
+        id: { type: BIGINT, primary_key: true, auto_increment: true }
+        name: { type: VARCHAR(200), not_null: true }
+        description: { type: TEXT, nullable: true }
+        price: { type: DECIMAL(12, 2), not_null: true }
+        stock: { type: INT, not_null: true, default: 0 }
+        category_id: { type: BIGINT, nullable: true }
+        tags: { type: JSON, nullable: true }
+        is_active: { type: BOOLEAN, default: true }
+        created_at: { type: TIMESTAMP, default: "CURRENT_TIMESTAMP" }
+        updated_at: { type: TIMESTAMP, default: "CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP" }
+      indexes:
+        - { name: idx_category, columns: [category_id] }
+        - { name: idx_price, columns: [price] }
+        - { name: idx_active, columns: [is_active] }
+
+    order_items:
+      columns:
+        id: { type: BIGINT, primary_key: true, auto_increment: true }
+        order_id: { type: BIGINT, not_null: true }
+        product_id: { type: BIGINT, not_null: true }
+        quantity: { type: INT, not_null: true, default: 1 }
+        unit_price: { type: DECIMAL(12, 2), not_null: true }
+        subtotal: { type: DECIMAL(12, 2), not_null: true }
+        created_at: { type: TIMESTAMP, default: "CURRENT_TIMESTAMP" }
+      indexes:
+        - { name: idx_order_id, columns: [order_id] }
+        - { name: idx_product_id, columns: [product_id] }
